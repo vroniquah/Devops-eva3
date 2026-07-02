@@ -1,14 +1,13 @@
-# Etapa 1: Construir la aplicación
-FROM node:18 AS build
+# Etapa de construcción
+FROM maven:3.8.5-openjdk-17 AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Etapa 2: Servir con Nginx
-FROM nginx:alpine
-# OJO: Si usas React, cambia "dist" por "build" en la línea de abajo
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Etapa de ejecución
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
